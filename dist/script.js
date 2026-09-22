@@ -1,7 +1,7 @@
 const variants = {
   stars: { src: '/assets/sugar-star-gummies.jpg', alt: 'Two sugar-coated star gummies with rounded points and raised centers, one bright red and one bright yellow', announcement: 'Showing bright red and yellow sugar-coated star gummies.' },
-  sweet: { src: '/assets/sweet-sugar-stars.jpg', alt: 'Mia’s Place sweet gummy concept: pink pouch and sachets with Mia’s portrait, alongside bright red and yellow sugar-coated star gummies', announcement: 'Showing the sweet packaging concept with sugar-coated star gummies.' },
-  sour: { src: '/assets/sour-sugar-stars.jpg', alt: 'Mia’s Place sour gummy concept: yellow pouch and sachets with Mia’s portrait, alongside bright red and yellow sugar-coated star gummies', announcement: 'Showing the sour packaging concept with sugar-coated star gummies.' }
+  sweet: { src: '/assets/sweet-small-signature.jpg', alt: 'Mia’s Place sweet gummy concept: pink pouch and sachets with a small illustrated Mia signature badge, alongside bright red and yellow sugar-coated star gummies', announcement: 'Showing the sweet packaging concept with sugar-coated star gummies.' },
+  sour: { src: '/assets/sour-small-signature.jpg', alt: 'Mia’s Place sour gummy concept: yellow pouch and sachets with a small illustrated Mia signature badge, alongside bright red and yellow sugar-coated star gummies', announcement: 'Showing the sour packaging concept with sugar-coated star gummies.' }
 };
 const buttons = document.querySelectorAll('.flavor-button');
 const product = document.querySelector('#hero-product');
