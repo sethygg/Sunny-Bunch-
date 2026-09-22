@@ -45,12 +45,15 @@ h1 span{color:#a83024}
 .hero-footnote{font-size:.875rem;margin-top:14px}
 .hero-visual{grid-column:2;grid-row:1/3;position:relative;align-self:stretch;min-height:580px;display:flex;align-items:center;justify-content:center;isolation:isolate;overflow:hidden;border-radius:48% 48% 20px 20px;background:#f7bdce;transition:background .35s}
 .hero-visual[data-flavor=sour]{background:var(--purple)}
+.hero-visual[data-flavor=stars]{background:var(--light)}
 .hero-product{width:100%;height:100%;object-fit:contain;padding:32px 4px 76px;position:absolute;inset:0;z-index:-1}
 .concept-label{position:absolute;top:18px;left:50%;transform:translateX(-50%);font-size:.75rem;letter-spacing:.08em;white-space:nowrap;background:#fffaf5de;border-radius:20px;padding:4px 10px}
 .flavor-controls{position:absolute;bottom:19px;background:var(--light);padding:5px;border:1px solid #36132f35;border-radius:40px;display:flex;gap:4px;box-shadow:0 5px 20px #36132f12}
 .flavor-button{border:0;background:transparent;padding:12px 20px;border-radius:30px;font-size:.875rem;font-weight:700;min-height:44px}
 .flavor-button.active{background:var(--ink);color:var(--light)}
 .flavor-button:not(.active):hover{background:#f5e2ea}
+.hero-visual .flavor-controls{width:min(92%,390px)}
+.hero-visual .flavor-button{flex:1;min-width:0;min-height:44px;padding:10px 9px;line-height:1.3}
 .ribbon{display:flex;align-items:center;justify-content:space-around;gap:22px;overflow:hidden;background:var(--orange);padding:17px 24px;font-size:.875rem;font-weight:700;letter-spacing:.06em;text-align:center}
 .ribbon span:nth-child(even){font-size:1.6rem;line-height:1}
 .section{padding:78px 7%}

@@ -1,6 +1,7 @@
 const variants = {
-  sweet: { src: '/assets/sweet-mia-portrait.jpg', alt: 'Mia’s Place sweet gummy packaging with Mia’s illustrated portrait: a pink outer pouch with compact individual sachets and colorful gummies' },
-  sour: { src: '/assets/sour-mia-portrait.jpg', alt: 'Mia’s Place sour gummy packaging with Mia’s illustrated portrait: a yellow outer pouch with compact individual sachets and sour gummies' }
+  stars: { src: '/assets/sugar-star-gummies.jpg', alt: 'Two sugar-coated star gummies with rounded points and raised centers, one bright red and one bright yellow', announcement: 'Showing bright red and yellow sugar-coated star gummies.' },
+  sweet: { src: '/assets/sweet-sugar-stars.jpg', alt: 'Mia’s Place sweet gummy concept: pink pouch and sachets with Mia’s portrait, alongside bright red and yellow sugar-coated star gummies', announcement: 'Showing the sweet packaging concept with sugar-coated star gummies.' },
+  sour: { src: '/assets/sour-sugar-stars.jpg', alt: 'Mia’s Place sour gummy concept: yellow pouch and sachets with Mia’s portrait, alongside bright red and yellow sugar-coated star gummies', announcement: 'Showing the sour packaging concept with sugar-coated star gummies.' }
 };
 const buttons = document.querySelectorAll('.flavor-button');
 const product = document.querySelector('#hero-product');
@@ -18,7 +19,7 @@ buttons.forEach(button => button.addEventListener('click', () => {
     item.classList.toggle('active', selected);
     item.setAttribute('aria-pressed', String(selected));
   });
-  status.textContent = 'Showing ' + flavor + ' gummy concept.';
+  status.textContent = variant.announcement;
 }));
 
 document.querySelectorAll('[data-launch-flavor]').forEach(link => {
