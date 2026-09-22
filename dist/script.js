@@ -1,6 +1,6 @@
 const variants = {
-  sweet: { src: '/assets/sweet.png', alt: 'Concept packaging: a pink Little Good sweet gummy sachet surrounded by colorful gummies' },
-  sour: { src: '/assets/sour.png', alt: 'Concept packaging: a yellow Little Good sour gummy sachet surrounded by sour gummies' }
+  sweet: { src: '/assets/sweet-format-v2.png', alt: 'Concept packaging: a pink Little Good sweet gummy outer pouch with compact individual sachets and colorful gummies' },
+  sour: { src: '/assets/sour-format-v2.png', alt: 'Concept packaging: a yellow Little Good sour gummy outer pouch with compact individual sachets and sour gummies' }
 };
 const buttons = document.querySelectorAll('.flavor-button');
 const product = document.querySelector('#hero-product');
