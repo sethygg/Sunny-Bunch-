@@ -1,7 +1,7 @@
 const variants = {
   stars: { src: '/assets/sugar-star-gummies.jpg', alt: 'Two sugar-coated star gummies with rounded points and raised centers, one bright red and one bright yellow', announcement: 'Showing bright red and yellow sugar-coated star gummies.' },
   raspberry: { src: '/assets/raspberry-sour.jpg', alt: 'Mia’s Place Natural Raspberry sour gummy concept: pink pouch and two sachets with the brand name and flavor, alongside red sugar-coated star gummies', announcement: 'Showing the Natural Raspberry sour gummy packaging concept.' },
-  tropical: { src: '/assets/tropical-sour.jpg', alt: 'Mia’s Place Pineapple Orange Guava sour gummy concept: yellow pouch and two sachets with the brand name and flavor, alongside yellow sugar-coated star gummies', announcement: 'Showing the Pineapple Orange Guava sour gummy packaging concept.' }
+  tropical: { src: '/assets/tropical-sour-warm.jpg', alt: 'Mia’s Place Pineapple Orange Guava sour gummy concept: warm golden-yellow pouch and two sachets with the brand name and flavor, alongside yellow sugar-coated star gummies', announcement: 'Showing the Pineapple Orange Guava sour gummy packaging concept.' }
 };
 const buttons = document.querySelectorAll('.flavor-button');
 const product = document.querySelector('#hero-product');
