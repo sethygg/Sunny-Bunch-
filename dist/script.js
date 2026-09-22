@@ -148,6 +148,7 @@ document.querySelectorAll('.purchase-form').forEach(form => {
     document.querySelector(`[data-price="${id}"]`).textContent = money(price);
     document.querySelector(`[data-per-serving="${id}"]`).textContent = `${money(price / 25)} per sachet`;
     form.querySelector('[data-once-price]').textContent = money(product.priceCents);
+    form.querySelector('[data-savings]').textContent = money(product.priceCents - unitPrice(product, 'subscription'));
     form.querySelector('[data-subscription-price]').firstChild.textContent = money(unitPrice(product, 'subscription'));
     form.querySelector('[data-renewal-price]').textContent = money(unitPrice(product, 'subscription'));
     form.querySelector('.plan-terms').hidden = mode !== 'subscription';

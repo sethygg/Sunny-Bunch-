@@ -1,8 +1,8 @@
 export const PRODUCTS = Object.freeze({
-  raspberry: Object.freeze({ id: 'raspberry', name: 'Natural Raspberry', priceCents: 2499, image: '/assets/sunnybunch-raspberry-brand-first.jpg' }),
-  tropical: Object.freeze({ id: 'tropical', name: 'Pineapple Orange Guava', priceCents: 2499, image: '/assets/sunnybunch-tropical-brand-first.jpg' })
+  raspberry: Object.freeze({ id: 'raspberry', name: 'Natural Raspberry', priceCents: 3000, subscriptionPriceCents: 2499, image: '/assets/sunnybunch-raspberry-brand-first.jpg' }),
+  tropical: Object.freeze({ id: 'tropical', name: 'Pineapple Orange Guava', priceCents: 3000, subscriptionPriceCents: 2499, image: '/assets/sunnybunch-tropical-brand-first.jpg' })
 });
-export const SUBSCRIPTION = Object.freeze({ discountPercent: 10, intervalDays: 30 });
+export const SUBSCRIPTION = Object.freeze({ intervalDays: 30 });
 export const PURCHASE_MODES = Object.freeze(['one-time', 'subscription']);
 export const MAX_QUANTITY = 99;
 // Keep existing bags: legacy flavor keys are always one-time purchases.
@@ -15,7 +15,8 @@ export function lineKey(id, purchaseMode = 'one-time') {
 export function unitPrice(product, purchaseMode = 'one-time') {
   if (!PURCHASE_MODES.includes(purchaseMode)) throw new Error('Choose one-time purchase or subscription.');
   if (!Number.isInteger(product.priceCents) || product.priceCents < 0) return null;
-  return purchaseMode === 'subscription' ? Math.round(product.priceCents * (100 - SUBSCRIPTION.discountPercent) / 100) : product.priceCents;
+  const price = purchaseMode === 'subscription' ? product.subscriptionPriceCents : product.priceCents;
+  return Number.isInteger(price) && price >= 0 ? price : null;
 }
 export function updateCart(cart, id, quantity, purchaseMode = 'one-time') {
   const key = lineKey(id, purchaseMode);

@@ -46,14 +46,16 @@ test('batch bag replacement validates every item and does not mutate an existing
 });
 
 
-test('subscription discount rounds once per pouch, never on the extended line total', () => {
-  assert.equal(unitPrice(PRODUCTS.raspberry, 'one-time'), 2499);
-  assert.equal(unitPrice(PRODUCTS.raspberry, 'subscription'), 2249);
+test('subscription uses the approved fixed unit price and exact per-pouch savings', () => {
+  assert.equal(unitPrice(PRODUCTS.raspberry, 'one-time'), 3000);
+  assert.equal(unitPrice(PRODUCTS.tropical, 'one-time'), 3000);
+  assert.equal(unitPrice(PRODUCTS.tropical, 'subscription'), 2499);
+  assert.equal(unitPrice(PRODUCTS.raspberry, 'subscription'), 2499);
   const summary = summarizeCart(updateCart({}, 'raspberry', 2, 'subscription'));
-  assert.equal(summary.items[0].unitPriceCents, 2249);
-  assert.equal(summary.subtotalCents, 4498);
-  assert.equal(summary.recurringSubtotalCents, 4498);
-  assert.equal(summary.savingsCents, 500);
+  assert.equal(summary.items[0].unitPriceCents, 2499);
+  assert.equal(summary.subtotalCents, 4998);
+  assert.equal(summary.recurringSubtotalCents, 4998);
+  assert.equal(summary.savingsCents, 1002);
   assert.equal(summary.recurringIntervalDays, 30);
   assert.equal(summary.shippingIncluded, false);
   assert.equal(summary.taxIncluded, false);
@@ -66,8 +68,8 @@ test('one-time and subscription pouches of the same flavor coexist with distinct
   const summary = summarizeCart(mixed);
   assert.deepEqual(original, { raspberry: 1 });
   assert.equal(summary.items.length, 2);
-  assert.equal(summary.subtotalCents, 6997);
-  assert.equal(summary.recurringSubtotalCents, 4498);
+  assert.equal(summary.subtotalCents, 7998);
+  assert.equal(summary.recurringSubtotalCents, 4998);
   assert.equal(summary.pouchCount, 3);
   assert.equal(summary.sachetCount, 75);
   assert.equal(summary.items[0].intervalDays, null);
@@ -77,17 +79,17 @@ test('one-time and subscription pouches of the same flavor coexist with distinct
   assert.equal(summarizeCart(onceOnly).recurringSubtotalCents, 0);
   assert.equal(summarizeCart(onceOnly).hasSubscription, false);
   const subscriptionOnly = updateCart(mixed, 'raspberry', 0);
-  assert.equal(summarizeCart(subscriptionOnly).subtotalCents, 4498);
+  assert.equal(summarizeCart(subscriptionOnly).subtotalCents, 4998);
 });
 test('saved legacy bags remain one-time and subscription storage uses only known options', () => {
   const old = restoreCart('{"raspberry":2,"tropical":1}');
   assert.equal(summarizeCart(old).hasSubscription, false);
-  assert.equal(summarizeCart(old).subtotalCents, 7497);
+  assert.equal(summarizeCart(old).subtotalCents, 9000);
   const saved = updateCart(old, 'tropical', 3, 'subscription');
   assert.deepEqual(restoreCart(JSON.stringify(saved)), saved);
   const sanitized = restoreCart('{"raspberry:subscription":2,"tropical:subscription":100,"raspberry:weekly":1,"subscription":true,"priceCents":1}');
   assert.deepEqual(sanitized, { 'raspberry:subscription': 2 });
-  assert.equal(summarizeCart(sanitized).subtotalCents, 4498);
+  assert.equal(summarizeCart(sanitized).subtotalCents, 4998);
 });
 test('batch edits require valid purchase modes and reject duplicates atomically', () => {
   const input = { items: [
@@ -98,8 +100,8 @@ test('batch edits require valid purchase modes and reject duplicates atomically'
   ] };
   const bag = replaceCart(input);
   assert.equal(summarizeCart(bag).items.length, 4);
-  assert.equal(summarizeCart(bag).subtotalCents, 23490);
-  assert.equal(summarizeCart(bag).recurringSubtotalCents, 13494);
+  assert.equal(summarizeCart(bag).subtotalCents, 26994);
+  assert.equal(summarizeCart(bag).recurringSubtotalCents, 14994);
   assert.throws(() => replaceCart({ items: [...input.items, input.items[0]] }));
   assert.throws(() => replaceCart({ items: [input.items[1], input.items[1]] }));
   for (const mode of ['weekly', '', null, true, '__proto__']) {
