@@ -1,7 +1,7 @@
 const variants = {
   stars: { src: '/assets/sugar-star-gummies.jpg', alt: 'Two sugar-coated star gummies with rounded points and raised centers, one bright red and one bright yellow', announcement: 'Showing bright red and yellow sugar-coated star gummies.' },
-  sweet: { src: '/assets/sweet-small-signature.jpg', alt: 'Mia’s Place sweet gummy concept: pink pouch and sachets with a small illustrated Mia signature badge, alongside bright red and yellow sugar-coated star gummies', announcement: 'Showing the sweet packaging concept with sugar-coated star gummies.' },
-  sour: { src: '/assets/sour-small-signature.jpg', alt: 'Mia’s Place sour gummy concept: yellow pouch and sachets with a small illustrated Mia signature badge, alongside bright red and yellow sugar-coated star gummies', announcement: 'Showing the sour packaging concept with sugar-coated star gummies.' }
+  raspberry: { src: '/assets/raspberry-sour.jpg', alt: 'Mia’s Place Natural Raspberry sour gummy concept: pink pouch and two sachets with the brand name and flavor, alongside red sugar-coated star gummies', announcement: 'Showing the Natural Raspberry sour gummy packaging concept.' },
+  tropical: { src: '/assets/tropical-sour.jpg', alt: 'Mia’s Place Pineapple Orange Guava sour gummy concept: yellow pouch and two sachets with the brand name and flavor, alongside yellow sugar-coated star gummies', announcement: 'Showing the Pineapple Orange Guava sour gummy packaging concept.' }
 };
 const buttons = document.querySelectorAll('.flavor-button');
 const product = document.querySelector('#hero-product');
@@ -25,8 +25,9 @@ buttons.forEach(button => button.addEventListener('click', () => {
 document.querySelectorAll('[data-launch-flavor]').forEach(link => {
   link.addEventListener('click', () => {
     const flavor = link.dataset.launchFlavor;
-    document.querySelector('#launch-choice').textContent =
-      flavor === 'sour' ? 'Your pick: Sour Gummies.' : 'Your pick: Sweet Gummies.';
+    const names = { raspberry: 'Natural Raspberry', tropical: 'Pineapple Orange Guava' };
+    if (names[flavor]) document.querySelector('#launch-choice').textContent =
+      'Your pick: ' + names[flavor] + ' sour gummies.';
   });
 });
 
