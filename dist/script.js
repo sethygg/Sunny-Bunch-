@@ -1,7 +1,7 @@
 const variants = {
   suns: { src: '/assets/sugar-sun-gummies.jpg', alt: 'Two sugar-coated sun gummies with rounded rays and raised centers, one bright red and one bright yellow', announcement: 'Showing bright red and yellow sugar-coated sun gummies.' },
-  raspberry: { src: '/assets/raspberry-suns.jpg', alt: 'Mia’s Place Natural Raspberry sour gummy concept: pink pouch and two sachets with the brand name and flavor, alongside red sugar-coated sun gummies', announcement: 'Showing the Natural Raspberry sour gummy packaging concept.' },
-  tropical: { src: '/assets/tropical-suns.jpg', alt: 'Mia’s Place Pineapple Orange Guava sour gummy concept: warm golden-yellow pouch and two sachets with the brand name and flavor, alongside yellow sugar-coated sun gummies', announcement: 'Showing the Pineapple Orange Guava sour gummy packaging concept.' }
+  raspberry: { src: '/assets/raspberry-suns-matte.jpg', alt: 'Mia’s Place Natural Raspberry sour gummy concept: matte pink pouch and two sachets with the brand name and flavor, alongside red sugar-coated sun gummies', announcement: 'Showing the Natural Raspberry sour gummy packaging concept.' },
+  tropical: { src: '/assets/tropical-suns-matte.jpg', alt: 'Mia’s Place Pineapple Orange Guava sour gummy concept: matte warm golden-yellow pouch and two sachets with the brand name and flavor, alongside yellow sugar-coated sun gummies', announcement: 'Showing the Pineapple Orange Guava sour gummy packaging concept.' }
 };
 const buttons = document.querySelectorAll('.flavor-button');
 const product = document.querySelector('#hero-product');
