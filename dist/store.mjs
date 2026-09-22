@@ -1,6 +1,6 @@
 export const PRODUCTS = Object.freeze({
-  raspberry: Object.freeze({ id: 'raspberry', name: 'Natural Raspberry', priceCents: null, image: '/assets/sunnybunch-raspberry-20g.jpg' }),
-  tropical: Object.freeze({ id: 'tropical', name: 'Pineapple Orange Guava', priceCents: null, image: '/assets/sunnybunch-tropical-20g.jpg' })
+  raspberry: Object.freeze({ id: 'raspberry', name: 'Natural Raspberry', priceCents: null, image: '/assets/sunnybunch-raspberry-brand-first.jpg' }),
+  tropical: Object.freeze({ id: 'tropical', name: 'Pineapple Orange Guava', priceCents: null, image: '/assets/sunnybunch-tropical-brand-first.jpg' })
 });
 export const MAX_QUANTITY = 99;
 export const CART_KEY = 'mias-place-bag-v1';
