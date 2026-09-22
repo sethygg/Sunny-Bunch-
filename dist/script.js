@@ -1,6 +1,6 @@
 const variants = {
-  sweet: { src: '/assets/sweet-mias-place.jpg', alt: 'Mia’s Place sweet gummy packaging concept: a pink outer pouch with compact individual sachets and colorful gummies' },
-  sour: { src: '/assets/sour-mias-place.jpg', alt: 'Mia’s Place sour gummy packaging concept: a yellow outer pouch with compact individual sachets and sour gummies' }
+  sweet: { src: '/assets/sweet-mia-portrait.jpg', alt: 'Mia’s Place sweet gummy packaging with Mia’s illustrated portrait: a pink outer pouch with compact individual sachets and colorful gummies' },
+  sour: { src: '/assets/sour-mia-portrait.jpg', alt: 'Mia’s Place sour gummy packaging with Mia’s illustrated portrait: a yellow outer pouch with compact individual sachets and sour gummies' }
 };
 const buttons = document.querySelectorAll('.flavor-button');
 const product = document.querySelector('#hero-product');
