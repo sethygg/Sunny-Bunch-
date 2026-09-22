@@ -209,3 +209,27 @@ footer>p{font-size:.9375rem}
 @media(max-width:1000px){.purchase-form{flex-wrap:wrap}.purchase-form .product-cta{min-width:140px}.product-description h3{font-size:1.9rem}}
 @media(max-width:700px){.header nav{gap:16px}.header nav .nav-pill{display:flex;padding:8px 12px;min-height:44px}.header nav>a{display:none}.hero-pack-facts{gap:28px;margin-top:20px}.product-description>p.product-size{font-size:.7rem}.purchase-form{flex-wrap:nowrap}.product-price{gap:10px}.shop-finale h2{font-size:3.5rem}.finale-sun{font-size:17rem;right:-80px;top:60px}.cart-dialog{padding:24px 22px}.cart-item{gap:14px;grid-template-columns:88px minmax(0,1fr)}.cart-item h3{font-size:1.3rem}.cart-header h2{font-size:2.5rem}.footer-links{width:100%}}
 @media(max-width:370px){.purchase-form .button{padding:13px;font-size:.875rem;min-width:0}.quantity-control button{width:32px}.cart-dialog{padding:20px 17px}.cart-item{grid-template-columns:74px minmax(0,1fr);gap:12px}.cart-header .eyebrow{letter-spacing:.06em}.bag-button{font-size:.8125rem}}
+
+/* Purchase options */
+.purchase-form{display:flex;flex-direction:column;gap:14px;flex-wrap:nowrap}
+.purchase-options{border:0;padding:0;margin:0;min-width:0;display:grid;gap:10px}
+.purchase-options legend{font-size:.875rem;font-weight:700;padding:0;margin-bottom:12px}
+.purchase-form .purchase-option{display:grid;grid-template-columns:20px minmax(0,1fr) auto;gap:12px;align-items:center;padding:16px 14px;margin:0;border:1.5px solid #36132f45;border-radius:14px;background:#fffaf550;cursor:pointer;font-weight:400}
+.purchase-option:has(input:checked){border-color:var(--ink);background:var(--light);box-shadow:0 0 0 1px var(--ink)}
+.purchase-option:has(input:focus-visible){outline:3px solid var(--ink);outline-offset:3px}
+.purchase-option input[type=radio]{width:19px;height:19px;min-height:0;padding:0;margin:0;accent-color:var(--ink)}
+.option-copy{min-width:0}
+.option-copy>strong{font-size:.9375rem;line-height:1.5;display:block}
+.option-copy>span{display:block;font-size:.875rem;margin-top:3px;font-weight:400;line-height:1.4}
+.save-badge{background:var(--sun);padding:2px 6px;border-radius:6px;font-size:.75rem;white-space:nowrap;display:inline-block}
+.option-price{font-size:1rem;white-space:nowrap;text-align:right}
+.option-price>span{display:block;font-size:.75rem;font-weight:400;margin-top:4px}
+.plan-terms{font-size:.875rem;line-height:1.5;margin:0}
+.purchase-actions{display:flex;gap:10px;align-items:stretch}
+.cart-item-mode{font-size:.875rem;font-weight:600;margin-top:10px}
+.cart-savings{font-size:.875rem;margin-top:10px}
+.cart-summary>.cart-recurring{margin-top:19px;padding-top:17px;border-top:1px solid #36132f30;font-size:.9375rem}
+.cart-renewal-note{font-size:.875rem;margin-top:8px;line-height:1.5}
+[hidden]{display:none!important}
+@media(min-width:701px) and (max-width:1000px){.purchase-option .option-price{grid-column:2;text-align:left}.purchase-form .purchase-option{grid-template-columns:20px minmax(0,1fr)}.option-price>span{display:inline;margin-left:5px}}
+@media(max-width:400px){.purchase-form .purchase-option{gap:8px;padding:14px 10px}.option-copy>strong{font-size:.875rem}.option-copy>span{font-size:.875rem}.option-price{font-size:.9375rem}.purchase-actions{flex-wrap:wrap}.purchase-actions .product-cta{min-width:140px}}

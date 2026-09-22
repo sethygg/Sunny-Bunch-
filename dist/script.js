@@ -1,4 +1,4 @@
-import { PRODUCTS, MAX_QUANTITY, CART_KEY, updateCart, restoreCart, replaceCart, summarizeCart, money } from './store.mjs';
+import { PRODUCTS, SUBSCRIPTION, MAX_QUANTITY, CART_KEY, lineKey, unitPrice, updateCart, restoreCart, replaceCart, summarizeCart, money } from './store.mjs';
 const variants = {
   suns: { src: '/assets/sugar-sun-gummies.jpg', alt: 'Red and golden-yellow sugar-coated sun gummies with rounded rays and raised centers', announcement: 'Showing the sugar-coated gummy suns.' },
   raspberry: { src: PRODUCTS.raspberry.image, alt: 'Sunnybunch Natural Raspberry in matte pink packaging, with red sugar-coated sun gummies', announcement: 'Showing Natural Raspberry.' },
@@ -58,7 +58,7 @@ function element(tag, className, text) {
 }
 function renderCart() {
   const focusKey = cartItems.contains(document.activeElement) ? document.activeElement.dataset.cartAction : null;
-  document.querySelectorAll('.purchase-form input').forEach(input => input.setCustomValidity(''));
+  document.querySelectorAll('.purchase-form input[name=quantity]').forEach(input => input.setCustomValidity(''));
   const summary = summarizeCart(cart);
   document.querySelectorAll('[data-cart-count]').forEach(node => { node.textContent = String(summary.pouchCount); });
   document.querySelectorAll('[data-open-cart]').forEach(node => node.setAttribute('aria-label', `Open shopping bag, ${summary.pouchCount} pouches`));
@@ -74,18 +74,20 @@ function renderCart() {
     image.height = 100;
     const details = element('div', 'cart-item-details');
     details.append(element('h3', '', item.name), element('p', 'cart-item-size', '25 × 20 g sachets · 500 g total'));
+    const modeLabel = item.purchaseMode === 'subscription' ? 'Subscription · every 30 days' : 'One-time purchase';
+    details.append(element('p', 'cart-item-mode', modeLabel));
     details.append(element('p', 'cart-line-price', item.lineTotalCents === null ? 'Price to be confirmed' : money(item.lineTotalCents)));
     const controls = element('div', 'cart-item-controls');
     const quantity = element('div', 'quantity-control');
     [-1, 1].forEach((step, index) => {
       const button = element('button', '', step === -1 ? '−' : '+');
       button.type = 'button';
-      button.setAttribute('aria-label', `${step < 0 ? 'One fewer' : 'One more'} ${item.name} pouch`);
-      button.dataset.cartAction = `${item.id}-${step}`;
+      button.setAttribute('aria-label', `${step < 0 ? 'One fewer' : 'One more'} ${item.name} ${item.purchaseMode} pouch`);
+      button.dataset.cartAction = `${item.key}-${step}`;
       button.disabled = step === 1 && item.quantity === MAX_QUANTITY;
       button.addEventListener('click', () => {
         const focusKey = button.dataset.cartAction;
-        setQuantity(item.id, item.quantity + step);
+        setQuantity(item.id, item.quantity + step, item.purchaseMode);
         const target = [...cartItems.querySelectorAll('[data-cart-action]')].find(control => control.dataset.cartAction === focusKey && !control.disabled);
         (target || cartItems.querySelector('button') || document.querySelector('#cart-empty button')).focus();
       });
@@ -98,10 +100,10 @@ function renderCart() {
     });
     const remove = element('button', 'remove-item', 'Remove');
     remove.type = 'button';
-    remove.dataset.cartAction = `${item.id}-remove`;
-    remove.setAttribute('aria-label', `Remove ${item.name} from your bag`);
+    remove.dataset.cartAction = `${item.key}-remove`;
+    remove.setAttribute('aria-label', `Remove ${item.name} ${item.purchaseMode} pouches from your bag`);
     remove.addEventListener('click', () => {
-      setQuantity(item.id, 0);
+      setQuantity(item.id, 0, item.purchaseMode);
       (cartItems.querySelector('button') || document.querySelector('#cart-empty button')).focus();
     });
     controls.append(quantity, remove);
@@ -110,6 +112,13 @@ function renderCart() {
     cartItems.append(row);
   });
   document.querySelector('#cart-subtotal').textContent = summary.subtotalCents === null ? 'Awaiting prices' : money(summary.subtotalCents);
+  document.querySelector('#cart-subtotal-label').textContent = summary.hasSubscription ? 'First order subtotal' : 'Subtotal';
+  document.querySelector('#cart-recurring').hidden = !summary.hasSubscription;
+  document.querySelector('#cart-renewal-note').hidden = !summary.hasSubscription;
+  document.querySelector('#cart-recurring-subtotal').textContent = summary.recurringSubtotalCents === null ? 'Awaiting prices' : money(summary.recurringSubtotalCents);
+  const savings = document.querySelector('#cart-savings');
+  savings.hidden = !(summary.savingsCents > 0);
+  savings.textContent = summary.savingsCents > 0 ? `You save ${money(summary.savingsCents)} with Subscribe & Save.` : '';
   document.querySelector('.cart-storage-note').textContent = storageAvailable ? 'Your bag is saved in this browser only.' : 'Your bag is kept for this visit only.';
   if (focusKey && dialog.open) {
     const target = [...cartItems.querySelectorAll('[data-cart-action]')].find(control => control.dataset.cartAction === focusKey && !control.disabled);
@@ -123,19 +132,29 @@ function commitCart(next) {
   renderCart();
   return summarizeCart(cart);
 }
-function setQuantity(id, quantity) {
-  const summary = commitCart(updateCart(cart, id, quantity));
-  status.textContent = quantity === 0 ? `${PRODUCTS[id].name} removed from your bag.` : `${quantity} ${PRODUCTS[id].name} pouches in your bag.`;
+function setQuantity(id, quantity, purchaseMode = 'one-time') {
+  const summary = commitCart(updateCart(cart, id, quantity, purchaseMode));
+  status.textContent = quantity === 0 ? `${PRODUCTS[id].name} ${purchaseMode} removed from your bag.` : `${quantity} ${PRODUCTS[id].name} ${purchaseMode} pouches in your bag. No order or subscription has been created.`;
   return summary;
 }
 document.querySelectorAll('.purchase-form').forEach(form => {
   const id = form.dataset.product;
-  const input = form.querySelector('input');
+  const input = form.querySelector('input[name=quantity]');
   const product = PRODUCTS[id];
-  if (product.priceCents !== null) {
-    document.querySelector(`[data-price="${id}"]`).textContent = money(product.priceCents);
-    document.querySelector(`[data-per-serving="${id}"]`).textContent = `${money(product.priceCents / 25)} per sachet`;
-  }
+  const selectedMode = () => form.querySelector('input[type=radio]:checked').value;
+  const showPurchaseMode = () => {
+    const mode = selectedMode();
+    const price = unitPrice(product, mode);
+    document.querySelector(`[data-price="${id}"]`).textContent = money(price);
+    document.querySelector(`[data-per-serving="${id}"]`).textContent = `${money(price / 25)} per sachet`;
+    form.querySelector('[data-once-price]').textContent = money(product.priceCents);
+    form.querySelector('[data-subscription-price]').firstChild.textContent = money(unitPrice(product, 'subscription'));
+    form.querySelector('[data-renewal-price]').textContent = money(unitPrice(product, 'subscription'));
+    form.querySelector('.plan-terms').hidden = mode !== 'subscription';
+    input.setCustomValidity('');
+  };
+  form.querySelectorAll('input[type=radio]').forEach(radio => radio.addEventListener('change', showPurchaseMode));
+  showPurchaseMode();
   form.querySelector('[type="submit"]').disabled = false;
   form.querySelectorAll('[data-step]').forEach(button => button.addEventListener('click', () => {
     const current = Number.isInteger(input.valueAsNumber) ? input.valueAsNumber : 1;
@@ -147,13 +166,14 @@ document.querySelectorAll('.purchase-form').forEach(form => {
     event.preventDefault();
     input.setCustomValidity('');
     if (!form.reportValidity()) return;
-    const quantity = input.valueAsNumber + (cart[id] || 0);
+    const mode = selectedMode();
+    const quantity = input.valueAsNumber + (cart[lineKey(id, mode)] || 0);
     if (quantity > MAX_QUANTITY) {
-      input.setCustomValidity('Your bag can hold up to 99 pouches of each flavor.');
+      input.setCustomValidity('Your bag can hold up to 99 pouches of each flavor per purchase option.');
       input.reportValidity();
       return;
     }
-    setQuantity(id, quantity);
+    setQuantity(id, quantity, mode);
     openCart();
   });
 });
@@ -165,11 +185,11 @@ renderCart();
 // Optional browser-native agent interface. Cart edits never place an order.
 if (document.modelContext?.registerTool) {
   const lifecycle = new AbortController();
-  const readBag = () => ({ products: Object.values(PRODUCTS).map(({ id, name, priceCents }) => ({ id, name, priceCents, sachetsPerPouch: 25, gummiesPerSachet: 8, gramsPerSachet: 20, gramsPerPouch: 500 })), ...summarizeCart(cart) });
+  const readBag = () => ({ products: Object.values(PRODUCTS).map(product => ({ id: product.id, name: product.name, priceCents: product.priceCents, subscriptionPriceCents: unitPrice(product, 'subscription'), sachetsPerPouch: 25, gummiesPerSachet: 8, gramsPerSachet: 20, gramsPerPouch: 500 })), subscription: SUBSCRIPTION, ...summarizeCart(cart) });
   const definitions = [
     {
       name: 'read_shopping_bag', title: 'Read Sunnybunch shopping bag',
-      description: 'Read the two available flavors, current bag quantities, known prices and checkout availability. Does not change the bag or place an order.',
+      description: 'Read flavors, purchase modes, prices, first-order and recurring subtotals, subscription interval, and checkout availability. Does not change the bag or place an order.',
       inputSchema: { type: 'object', properties: {}, additionalProperties: false },
       annotations: { readOnlyHint: true, untrustedContentHint: false },
       execute(input) {
@@ -179,14 +199,14 @@ if (document.modelContext?.registerTool) {
     },
     {
       name: 'replace_shopping_bag', title: 'Set Sunnybunch shopping bag',
-      description: 'Replace the entire device-local shopping bag with these flavor quantities and open it for review. Omitted flavors are removed; an empty list clears the bag. This only stages a purchase: no checkout, payment or order is created.',
-      inputSchema: { type: 'object', properties: { items: { type: 'array', maxItems: 2, items: { type: 'object', properties: { id: { type: 'string', enum: ['raspberry', 'tropical'] }, quantity: { type: 'integer', minimum: 0, maximum: 99 } }, required: ['id', 'quantity'], additionalProperties: false } } }, required: ['items'], additionalProperties: false },
+      description: 'Replace the entire device-local bag and open it for review. Each flavor can have one one-time line and one subscription line. purchaseMode defaults to one-time; choose subscription only when explicitly requested. Subscriptions repeat every 30 days, with shipping and tax extra each delivery. Omitted lines are removed; an empty list clears the bag. This only stages a purchase: no checkout, payment, order or subscription is created.',
+      inputSchema: { type: 'object', properties: { items: { type: 'array', maxItems: 4, items: { type: 'object', properties: { id: { type: 'string', enum: ['raspberry', 'tropical'] }, quantity: { type: 'integer', minimum: 0, maximum: 99 }, purchaseMode: { type: 'string', enum: ['one-time', 'subscription'], default: 'one-time' } }, required: ['id', 'quantity'], additionalProperties: false } } }, required: ['items'], additionalProperties: false },
       annotations: { readOnlyHint: false, untrustedContentHint: false },
       execute(input) {
         const next = replaceCart(input);
         commitCart(next);
         openCart();
-        status.textContent = 'Your shopping bag has been updated. No order has been placed.';
+        status.textContent = 'Your shopping bag has been updated. No order or subscription has been created.';
         return readBag();
       }
     }
