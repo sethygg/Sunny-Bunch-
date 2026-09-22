@@ -1,8 +1,8 @@
 import { PRODUCTS, MAX_QUANTITY, CART_KEY, updateCart, restoreCart, replaceCart, summarizeCart, money } from './store.mjs';
 const variants = {
   suns: { src: '/assets/sugar-sun-gummies.jpg', alt: 'Red and golden-yellow sugar-coated sun gummies with rounded rays and raised centers', announcement: 'Showing the sugar-coated gummy suns.' },
-  raspberry: { src: PRODUCTS.raspberry.image, alt: 'Mia’s Place Natural Raspberry in matte pink packaging, with red sugar-coated sun gummies', announcement: 'Showing Natural Raspberry.' },
-  tropical: { src: PRODUCTS.tropical.image, alt: 'Mia’s Place Pineapple Orange Guava in matte golden-yellow packaging, with yellow sugar-coated sun gummies', announcement: 'Showing Pineapple Orange Guava.' }
+  raspberry: { src: PRODUCTS.raspberry.image, alt: 'Sunnybunch Natural Raspberry in matte pink packaging, with red sugar-coated sun gummies', announcement: 'Showing Natural Raspberry.' },
+  tropical: { src: PRODUCTS.tropical.image, alt: 'Sunnybunch Pineapple Orange Guava in matte golden-yellow packaging, with yellow sugar-coated sun gummies', announcement: 'Showing Pineapple Orange Guava.' }
 };
 document.querySelectorAll('[data-flavor].flavor-button').forEach(button => {
   button.addEventListener('click', () => {
@@ -168,7 +168,7 @@ if (document.modelContext?.registerTool) {
   const readBag = () => ({ products: Object.values(PRODUCTS).map(({ id, name, priceCents }) => ({ id, name, priceCents, sachetsPerPouch: 25, gummiesPerSachet: 8 })), ...summarizeCart(cart) });
   const definitions = [
     {
-      name: 'read_shopping_bag', title: 'Read Mia’s Place shopping bag',
+      name: 'read_shopping_bag', title: 'Read Sunnybunch shopping bag',
       description: 'Read the two available flavors, current bag quantities, known prices and checkout availability. Does not change the bag or place an order.',
       inputSchema: { type: 'object', properties: {}, additionalProperties: false },
       annotations: { readOnlyHint: true, untrustedContentHint: false },
@@ -178,7 +178,7 @@ if (document.modelContext?.registerTool) {
       }
     },
     {
-      name: 'replace_shopping_bag', title: 'Set Mia’s Place shopping bag',
+      name: 'replace_shopping_bag', title: 'Set Sunnybunch shopping bag',
       description: 'Replace the entire device-local shopping bag with these flavor quantities and open it for review. Omitted flavors are removed; an empty list clears the bag. This only stages a purchase: no checkout, payment or order is created.',
       inputSchema: { type: 'object', properties: { items: { type: 'array', maxItems: 2, items: { type: 'object', properties: { id: { type: 'string', enum: ['raspberry', 'tropical'] }, quantity: { type: 'integer', minimum: 0, maximum: 99 } }, required: ['id', 'quantity'], additionalProperties: false } } }, required: ['items'], additionalProperties: false },
       annotations: { readOnlyHint: false, untrustedContentHint: false },
