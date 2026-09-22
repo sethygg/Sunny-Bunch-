@@ -73,7 +73,7 @@ function renderCart() {
     image.width = 100;
     image.height = 100;
     const details = element('div', 'cart-item-details');
-    details.append(element('h3', '', item.name), element('p', 'cart-item-size', '25 sachets · 8 gummies each'));
+    details.append(element('h3', '', item.name), element('p', 'cart-item-size', '25 × 20 g sachets · 500 g total'));
     details.append(element('p', 'cart-line-price', item.lineTotalCents === null ? 'Price to be confirmed' : money(item.lineTotalCents)));
     const controls = element('div', 'cart-item-controls');
     const quantity = element('div', 'quantity-control');
@@ -165,7 +165,7 @@ renderCart();
 // Optional browser-native agent interface. Cart edits never place an order.
 if (document.modelContext?.registerTool) {
   const lifecycle = new AbortController();
-  const readBag = () => ({ products: Object.values(PRODUCTS).map(({ id, name, priceCents }) => ({ id, name, priceCents, sachetsPerPouch: 25, gummiesPerSachet: 8 })), ...summarizeCart(cart) });
+  const readBag = () => ({ products: Object.values(PRODUCTS).map(({ id, name, priceCents }) => ({ id, name, priceCents, sachetsPerPouch: 25, gummiesPerSachet: 8, gramsPerSachet: 20, gramsPerPouch: 500 })), ...summarizeCart(cart) });
   const definitions = [
     {
       name: 'read_shopping_bag', title: 'Read Sunnybunch shopping bag',
