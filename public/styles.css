@@ -38,6 +38,14 @@ h1{font-size:clamp(3.5rem,6.5vw,6.4rem);letter-spacing:-.05em;line-height:1.01;m
 h1 span{color:#a83024}
 .hero-details{grid-column:1;grid-row:2;padding-bottom:28px}
 .hero-description{font-size:1.125rem;line-height:1.65;max-width:420px}
+.sugar-highlight,.product-sugar-fact{display:flex;align-items:center;gap:15px;width:fit-content;max-width:100%;color:var(--ink)}
+.sugar-highlight{margin:0 0 24px;padding:12px 20px 12px 16px;background:var(--light);border-radius:18px}
+.sugar-highlight>strong{font-family:var(--display);font-size:3.25rem;line-height:1.05;white-space:nowrap;font-weight:600}
+.sugar-highlight>span,.product-sugar-fact>span{font-weight:700;font-size:1rem;line-height:1.35}
+.sugar-highlight small,.product-sugar-fact small{display:block;margin-top:4px;font-size:.875rem;font-weight:500}
+.product-sugar-fact{margin:17px 0 2px;padding:12px 16px;background:#fffaf5bb;border-radius:14px}
+.product-sugar-fact>strong{font-family:var(--display);font-size:2.25rem;line-height:1.1;white-space:nowrap;font-weight:600}
+@media(max-width:370px){.sugar-highlight,.product-sugar-fact{padding:12px;gap:10px}.sugar-highlight>strong{font-size:2.75rem}}
 .hero-mission{font-size:.9375rem;max-width:390px;border-left:3px solid #a8302460;padding-left:15px;margin-top:20px}
 .hero-actions{display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin-top:26px}
 .button{display:inline-flex;align-items:center;justify-content:space-between;gap:24px;font-weight:700;padding:15px 22px;border-radius:32px;min-height:54px;border:0;transition:transform .2s,background .2s;text-align:left}

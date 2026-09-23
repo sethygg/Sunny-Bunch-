@@ -195,7 +195,7 @@ renderCart();
 // Optional browser-native agent interface. Cart edits never place an order.
 if (document.modelContext?.registerTool) {
   const lifecycle = new AbortController();
-  const readBag = () => ({ catalogAvailable, products: Object.values(PRODUCTS).filter(product=>product.published!==false).map(product => ({ id: product.id, name: product.name, priceCents: product.priceCents, subscriptionPriceCents: unitPrice(product, 'subscription'), sachetsPerPouch: 25, gummiesPerSachet: 8, gramsPerSachet: 20, gramsPerPouch: 500 })), subscription: SUBSCRIPTION, ...summarizeCart(cart) });
+  const readBag = () => ({ catalogAvailable, products: Object.values(PRODUCTS).filter(product=>product.published!==false).map(product => ({ id: product.id, name: product.name, priceCents: product.priceCents, subscriptionPriceCents: unitPrice(product, 'subscription'), sachetsPerPouch: 25, gummiesPerSachet: 8, gramsPerSachet: 20, totalSugarsGramsPerSachet: 1, gramsPerPouch: 500 })), subscription: SUBSCRIPTION, ...summarizeCart(cart) });
   const definitions = [
     {
       name: 'read_shopping_bag', title: 'Read Sunnybunch shopping bag',
