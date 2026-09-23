@@ -5,6 +5,7 @@ import { readFileSync, mkdirSync } from 'node:fs';
 import { build } from 'esbuild';
 import { DEFAULT_PRODUCTS, DEFAULT_CONTENT, validateProposal, applyChanges, isOwner, validateOrigin, publicCatalog } from '../lib/commerce.mjs';
 import { renderStorefront } from '../lib/render-storefront.mjs';
+import { LEGACY_MISSION_CONTENT, MISSION_RELEASE_ID } from '../lib/mission-copy.mjs';
 mkdirSync('.sites-runtime',{recursive:true});
 await build({entryPoints:['lib/database.ts'],outfile:'.sites-runtime/test-database.mjs',bundle:true,platform:'node',format:'esm',plugins:[{name:'test-cloudflare',setup(b){b.onResolve({filter:/^cloudflare:workers$/},()=>({path:'env',namespace:'test'}));b.onLoad({filter:/.*/,namespace:'test'},()=>({contents:'export const env=globalThis.__sunnybunchTestEnv;'}));}}]});
 globalThis.__sunnybunchTestEnv={};
@@ -51,4 +52,24 @@ test('rejecting an already processed proposal cannot alter the store or duplicat
 });
 test('public catalog excludes private data and unpublished products; HTML escapes editable text',()=>{
  const state=base();state.products[0].published=false;state.products[1].priceCents=3500;state.products[1].name='<script>alert(1)</script>';state.content.missionLead='<img src=x onerror=alert(1)>';state.audit=[{secret:'private'}];const catalog=publicCatalog(state);assert.equal(catalog.products.length,1);assert.equal(catalog.audit,undefined);assert.equal(catalog.checkoutAvailable,false);const html=renderStorefront(readFileSync('content/storefront.html','utf8'),state);assert.ok(!html.includes('id="raspberry"'));assert.ok(html.includes('data-price="tropical">$35.00'));assert.ok(html.includes('&lt;script&gt;'));assert.ok(!html.includes('<script>alert(1)</script>'));assert.ok(html.includes('&lt;img src=x onerror=alert(1)&gt;'));
+});
+
+test('mission release updates only exact older mission defaults once, with an atomic audit and revision',async()=>{
+ const db=reset();await repo.initialize('owner');
+ const legacy={...DEFAULT_CONTENT,...LEGACY_MISSION_CONTENT,announcement:'Owner-written announcement'};
+ db.sqlite.prepare("UPDATE shop SET content=?,revision=7,updated_at='2026-09-01T00:00:00.000Z' WHERE id='main'").run(JSON.stringify(legacy));
+ db.sqlite.prepare("UPDATE products SET stock=37,price_cents=3100 WHERE id='raspberry'").run();
+ const states=await Promise.all([repo.snapshot(),repo.snapshot()]);
+ for(const s of states){assert.equal(s.revision,8);assert.equal(s.content.missionStatement,DEFAULT_CONTENT.missionStatement);assert.equal(s.content.missionLead,DEFAULT_CONTENT.missionLead);assert.equal(s.content.announcement,legacy.announcement);assert.equal(s.products.find(p=>p.id==='raspberry').stock,37);assert.equal(s.products.find(p=>p.id==='raspberry').priceCents,3100);}
+ assert.equal(db.sqlite.prepare('SELECT count(*) n FROM audit WHERE id=?').get(MISSION_RELEASE_ID).n,1);
+ db.sqlite.prepare("UPDATE shop SET content=?,updated_at='2026-09-01T00:00:00.000Z' WHERE id='main'").run(JSON.stringify(legacy));
+ assert.equal((await repo.snapshot()).content.missionStatement,LEGACY_MISSION_CONTENT.missionStatement);
+});
+test('mission release preserves custom or later copy and rolls back completely when auditing fails',async()=>{
+ const db=reset();await repo.initialize('owner');const legacy={...DEFAULT_CONTENT,...LEGACY_MISSION_CONTENT,missionLead:'Owner-written heading'};
+ db.sqlite.prepare("UPDATE shop SET content=?,updated_at='2026-09-01T00:00:00.000Z' WHERE id='main'").run(JSON.stringify(legacy));
+ db.failOn='INSERT INTO audit';await assert.rejects(repo.snapshot());db.failOn=null;
+ const stored=db.sqlite.prepare("SELECT * FROM shop WHERE id='main'").get();assert.equal(stored.revision,1);assert.deepEqual(JSON.parse(stored.content),legacy);
+ const after=await repo.snapshot();assert.equal(after.content.missionLead,'Owner-written heading');assert.equal(after.content.missionStatement,DEFAULT_CONTENT.missionStatement);
+ const later=reset();await repo.initialize('owner');later.sqlite.prepare("UPDATE shop SET content=?,updated_at='2099-01-01T00:00:00.000Z' WHERE id='main'").run(JSON.stringify(legacy));assert.equal((await repo.snapshot()).content.missionStatement,legacy.missionStatement);
 });

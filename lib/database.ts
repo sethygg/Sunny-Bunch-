@@ -1,12 +1,25 @@
 import { env } from 'cloudflare:workers';
 import { DEFAULT_PRODUCTS, DEFAULT_CONTENT, CommerceError, applyChanges, validateProposal } from './commerce.mjs';
+import { LEGACY_MISSION_CONTENT, MISSION_RELEASE_CUTOFF, MISSION_RELEASE_ID } from './mission-copy.mjs';
 export function runtime(){return env as unknown as {DB?:D1Database;ADMIN_OWNER_EMAIL?:string};}
 export function db(){const binding=runtime().DB;if(!binding)throw new CommerceError('Store data is temporarily unavailable. Please try again.',503);return binding;}
 const productFromRow=(p:any)=>({id:p.id,name:p.name,description:p.description,image:p.image,priceCents:p.price_cents,subscriptionPriceCents:p.subscription_price_cents,published:!!p.published,stock:p.stock});
-export async function snapshot(){
+export async function snapshot(allowMissionUpdate=true):Promise<any>{
   const results=await db().batch([db().prepare("SELECT * FROM shop WHERE id='main'"),db().prepare('SELECT * FROM products ORDER BY id')]);
   const row=results[0].results[0] as any;
   if(!row)return {initialized:false,revision:0,products:structuredClone(DEFAULT_PRODUCTS),content:{...DEFAULT_CONTENT}};
+  if(allowMissionUpdate&&row.updated_at<=MISSION_RELEASE_CUTOFF){
+    const before=JSON.parse(row.content),content={...before};
+    for(const [key,legacy] of Object.entries(LEGACY_MISSION_CONTENT))if(content[key]===legacy)content[key]=(DEFAULT_CONTENT as any)[key];
+    if(JSON.stringify(before)!==JSON.stringify(content)&&!await db().prepare('SELECT id FROM audit WHERE id=?').bind(MISSION_RELEASE_ID).first()){
+      const operation=crypto.randomUUID(),at=new Date().toISOString();
+      await db().batch([
+        db().prepare("UPDATE shop SET content=?,revision=revision+1,last_operation=?,updated_at=? WHERE id='main' AND revision=? AND content=? AND updated_at<=? AND NOT EXISTS(SELECT 1 FROM audit WHERE id=?)").bind(JSON.stringify(content),operation,at,row.revision,row.content,MISSION_RELEASE_CUTOFF,MISSION_RELEASE_ID),
+        db().prepare("INSERT INTO audit(id,actor,action,before_data,after_data,created_at) SELECT ?,'site_release','broaden_mias_place_mission',?,?,? WHERE EXISTS(SELECT 1 FROM shop WHERE id='main' AND last_operation=?)").bind(MISSION_RELEASE_ID,JSON.stringify({content:before,revision:row.revision}),JSON.stringify({content,revision:row.revision+1}),at,operation)
+      ]);
+      return snapshot(false);
+    }
+  }
   return {initialized:true,revision:row.revision,products:results[1].results.map(productFromRow),content:JSON.parse(row.content)};
 }
 export async function initialize(actor:string){
