@@ -12,6 +12,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;650;700&amp;family=Fredoka:wght@500;600;700&amp;display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/schools.css">
+  <script type="module" src="/school-referral.js"></script>
   <script type="module" src="/script.js"></script>
 </head>
 <body>
@@ -22,9 +24,11 @@
     <nav aria-label="Main navigation">
       <a href="#treats">Shop gummies</a>
       <a href="#purpose">Our bigger purpose</a>
+      <a href="/schools">School Partners</a>
       <button class="nav-pill bag-button" type="button" data-open-cart aria-haspopup="dialog" disabled>Bag <span data-cart-count>0</span></button>
     </nav>
   </header>
+  <!--SCHOOL_SUPPORT-->
   <main id="main">
     <section class="hero" aria-labelledby="hero-title">
       <div class="hero-lead">
@@ -196,7 +200,7 @@
     </section>
   </main>
   <div class="mobile-cta"><span>Pick your sunshine<span class="mobile-status">25 × 20 g sachets per pouch</span></span><a class="button button-dark" href="#treats">Shop gummies <span aria-hidden="true">↗</span></a></div>
-  <footer><a href="#" class="wordmark brand-lockup" aria-label="Sunnybunch home"><span>Sunnybunch</span><span class="logo-sun" aria-hidden="true">☀︎</span></a><p>Little treats. Bigger possibilities.</p><div class="footer-links"><a href="#questions">Shipping &amp; product details</a><a href="#purpose">Our story</a></div></footer>
+  <footer><a href="#" class="wordmark brand-lockup" aria-label="Sunnybunch home"><span>Sunnybunch</span><span class="logo-sun" aria-hidden="true">☀︎</span></a><p>Little treats. Bigger possibilities.</p><div class="footer-links"><a href="#questions">Shipping &amp; product details</a><a href="#purpose">Our story</a><a href="/schools">School Partners</a></div></footer>
   <dialog class="cart-dialog" id="cart-dialog" aria-labelledby="cart-title">
     <div class="cart-header"><div><p class="eyebrow">YOUR LITTLE PACKS OF HAPPY</p><h2 id="cart-title">Your bag <span data-cart-count>0</span></h2></div><button class="icon-button" type="button" data-close-cart aria-label="Close shopping bag">×</button></div>
     <div id="cart-empty"><span aria-hidden="true">☀︎</span><h3>A little sunshine goes a long way.</h3><p>Your bag is empty. Find your favorite sour gummy suns.</p><button class="button button-dark" type="button" data-close-cart>Explore the flavors <span aria-hidden="true">↗</span></button></div>

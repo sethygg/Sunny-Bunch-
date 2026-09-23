@@ -1,0 +1,1 @@
+ALTER TABLE `orders` ADD `provider_subscription_id` text;

@@ -1,0 +1,25 @@
+import assert from 'node:assert/strict';
+const origin='http://127.0.0.1:5173'; // Local-only: this creates an isolated test district.
+const login=await fetch(origin+'/signin-with-chatgpt?return_to=/admin',{redirect:'manual'});
+const ownerCookie=login.headers.get('set-cookie')?.split(';')[0];assert.ok(ownerCookie);
+const owner=(input,extra={})=>fetch(origin+'/api/admin/schools',{method:input===undefined?'GET':'POST',headers:{Cookie:ownerCookie,...(input===undefined?{}:{Origin:origin,'Content-Type':'application/json'}),...extra},body:input===undefined?undefined:JSON.stringify(input)});
+const json=async response=>{assert.equal(response.status,200,await response.clone().text());return response.json();};
+assert.equal((await fetch(origin+'/schools')).status,200);
+assert.equal((await fetch(origin+'/api/admin/schools')).status,401);
+assert.equal((await fetch(origin+'/api/admin/schools',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json'},body:'{}'})).status,401);
+assert.equal((await owner({}, {Origin:'https://wrong.example'})).status,403);
+const id=crypto.randomUUID(),code='local-'+id.slice(0,8),input={id,code,name:'Local smoke district',program:'Local special education program',contactEmail:'private-contact@example.com',status:'active',revision:0};
+await fetch(origin+'/api/admin/initialize',{method:'POST',headers:{Cookie:ownerCookie,Origin:origin,'Content-Type':'application/json'},body:'{}'}).then(json);
+const partner=await owner(input).then(json);assert.equal(partner.revision,1);
+const landing=await fetch(origin+'/schools/'+code);assert.equal(landing.status,200);const cookie=landing.headers.get('set-cookie')?.split(';')[0];assert.ok(cookie);assert.ok(landing.headers.get('set-cookie').includes('HttpOnly'));assert.ok(landing.headers.get('cache-control').includes('no-store'));
+const html=await landing.text();assert.ok(html.includes(input.name));assert.ok(!html.includes(input.contactEmail));
+const referral=await fetch(origin+'/api/school-referral',{headers:{Cookie:cookie}}).then(json);assert.equal(referral.school.code,code);assert.deepEqual(Object.keys(referral.school).sort(),['code','name','program']);
+const homepage=await(await fetch(origin+'/',{headers:{Cookie:cookie}})).text();assert.ok(homepage.includes('School Partner: '+input.name));
+const invalid=await fetch(origin+'/schools/no-such-local-district',{headers:{Cookie:cookie}});assert.equal(invalid.status,404);assert.equal(invalid.headers.get('set-cookie'),null);
+assert.equal((await fetch(origin+'/api/school-referral',{headers:{Cookie:'sunnybunch_school='+'0'.repeat(64)}}).then(json)).school,null);
+assert.equal((await fetch(origin+'/api/school-referral',{method:'POST',headers:{Cookie:cookie,Origin:'https://wrong.example','Content-Type':'application/json'},body:'{}'})).status,403);
+const report=await owner().then(json),row=report.partners.find(p=>p.id===id);assert.equal(row.referralVisits,1);assert.equal(row.paidOrders,0);assert.equal(row.profitCents,null);assert.equal(row.donatedCents,null);
+const clear=await fetch(origin+'/api/school-referral',{method:'POST',headers:{Cookie:cookie,Origin:origin,'Content-Type':'application/json'},body:'{}'});assert.equal(clear.status,200);assert.ok(clear.headers.get('set-cookie').includes('Max-Age=0'));assert.equal((await fetch(origin+'/api/school-referral',{headers:{Cookie:cookie}}).then(json)).school,null);
+await owner({...input,revision:1,status:'paused'}).then(json);assert.equal((await fetch(origin+'/schools/'+code)).status,404);
+const admin=await fetch(origin+'/admin',{headers:{Cookie:ownerCookie}});assert.equal(admin.status,200);assert.ok((await admin.text()).includes('Sunnybunch'));
+console.log('School HTTP smoke passed: owner access, origin validation, private contacts, live referral cookie/banner, invalid link preservation, tamper rejection, removal, aggregate report and pause.');

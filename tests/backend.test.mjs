@@ -10,7 +10,7 @@ await build({entryPoints:['lib/database.ts'],outfile:'.sites-runtime/test-databa
 globalThis.__sunnybunchTestEnv={};
 const repo=await import('../.sites-runtime/test-database.mjs');
 class D1 {
-  constructor(){this.sqlite=new DatabaseSync(':memory:');this.sqlite.exec(readFileSync('drizzle/0000_sloppy_killraven.sql','utf8'));this.failOn=null;}
+  constructor(){this.sqlite=new DatabaseSync(':memory:');this.sqlite.exec('PRAGMA foreign_keys=ON');for(const entry of JSON.parse(readFileSync('drizzle/meta/_journal.json','utf8')).entries)this.sqlite.exec(readFileSync(`drizzle/${entry.tag}.sql`,'utf8'));this.failOn=null;}
   prepare(sql){const database=this;return {args:[],sql,bind(...args){this.args=args;return this;},execute(){if(database.failOn&&sql.includes(database.failOn))throw new Error('Simulated write failure');const st=database.sqlite.prepare(sql);if(st.columns().length)return {results:st.all(...this.args),meta:{changes:0}};return {results:[],meta:{changes:Number(st.run(...this.args).changes)}};},async run(){return this.execute();},async all(){return this.execute();},async first(){return this.execute().results[0]??null;}};}
   async batch(statements){this.sqlite.exec('BEGIN');try{const results=statements.map(s=>s.execute());this.sqlite.exec('COMMIT');return results;}catch(e){this.sqlite.exec('ROLLBACK');throw e;}}
 }
