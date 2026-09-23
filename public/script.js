@@ -1,4 +1,6 @@
-import { PRODUCTS, SUBSCRIPTION, MAX_QUANTITY, CART_KEY, lineKey, unitPrice, updateCart, restoreCart, replaceCart, summarizeCart, money } from './store.mjs';
+import { PRODUCTS, loadCatalog, invalidateCatalog, SUBSCRIPTION, MAX_QUANTITY, CART_KEY, lineKey, unitPrice, updateCart, restoreCart, replaceCart, summarizeCart, money } from './store.mjs';
+let catalogAvailable=true;
+try { const response=await fetch('/api/catalog',{cache:'no-store',signal:AbortSignal.timeout(8000)}); if(!response.ok)throw new Error('Catalog unavailable'); const data=await response.json(); loadCatalog(data.products); } catch { catalogAvailable=false; invalidateCatalog(); }
 const variants = {
   suns: { src: '/assets/sugar-sun-gummies.jpg', alt: 'Red and golden-yellow sugar-coated sun gummies with rounded rays and raised centers', announcement: 'Showing the sugar-coated gummy suns.' },
   raspberry: { src: PRODUCTS.raspberry.image, alt: 'Sunnybunch Natural Raspberry in matte pink packaging, with red sugar-coated sun gummies', announcement: 'Showing Natural Raspberry.' },
@@ -76,7 +78,8 @@ function renderCart() {
     details.append(element('h3', '', item.name), element('p', 'cart-item-size', '25 × 20 g sachets · 500 g total'));
     const modeLabel = item.purchaseMode === 'subscription' ? 'Subscription · every 30 days' : 'One-time purchase';
     details.append(element('p', 'cart-item-mode', modeLabel));
-    details.append(element('p', 'cart-line-price', item.lineTotalCents === null ? 'Price to be confirmed' : money(item.lineTotalCents)));
+    if(!item.available)details.append(element('p','cart-item-mode','Currently unavailable · remove or reduce this item'));
+    details.append(element('p', 'cart-line-price', item.lineTotalCents === null ? 'Price unavailable' : money(item.lineTotalCents)));
     const controls = element('div', 'cart-item-controls');
     const quantity = element('div', 'quantity-control');
     [-1, 1].forEach((step, index) => {
@@ -84,7 +87,7 @@ function renderCart() {
       button.type = 'button';
       button.setAttribute('aria-label', `${step < 0 ? 'One fewer' : 'One more'} ${item.name} ${item.purchaseMode} pouch`);
       button.dataset.cartAction = `${item.key}-${step}`;
-      button.disabled = step === 1 && item.quantity === MAX_QUANTITY;
+      button.disabled = step === 1 && (item.quantity === MAX_QUANTITY || !item.available);
       button.addEventListener('click', () => {
         const focusKey = button.dataset.cartAction;
         setQuantity(item.id, item.quantity + step, item.purchaseMode);
@@ -111,11 +114,11 @@ function renderCart() {
     row.append(image, details);
     cartItems.append(row);
   });
-  document.querySelector('#cart-subtotal').textContent = summary.subtotalCents === null ? 'Awaiting prices' : money(summary.subtotalCents);
+  document.querySelector('#cart-subtotal').textContent = summary.subtotalCents === null ? 'Contains unavailable items' : money(summary.subtotalCents);
   document.querySelector('#cart-subtotal-label').textContent = summary.hasSubscription ? 'First order subtotal' : 'Subtotal';
   document.querySelector('#cart-recurring').hidden = !summary.hasSubscription;
   document.querySelector('#cart-renewal-note').hidden = !summary.hasSubscription;
-  document.querySelector('#cart-recurring-subtotal').textContent = summary.recurringSubtotalCents === null ? 'Awaiting prices' : money(summary.recurringSubtotalCents);
+  document.querySelector('#cart-recurring-subtotal').textContent = summary.recurringSubtotalCents === null ? 'Contains unavailable items' : money(summary.recurringSubtotalCents);
   const savings = document.querySelector('#cart-savings');
   savings.hidden = !(summary.savingsCents > 0);
   savings.textContent = summary.savingsCents > 0 ? `You save ${money(summary.savingsCents)} with Subscribe & Save.` : '';
@@ -141,22 +144,28 @@ document.querySelectorAll('.purchase-form').forEach(form => {
   const id = form.dataset.product;
   const input = form.querySelector('input[name=quantity]');
   const product = PRODUCTS[id];
+  const card=form.closest('.product-card');
+  if(product.published===false){card.hidden=true;return;}
+  if(catalogAvailable)card.querySelector('h3').textContent=product.name;
+  if(catalogAvailable && product.description)card.querySelector('[data-product-description]').textContent=product.description;
   const selectedMode = () => form.querySelector('input[type=radio]:checked').value;
   const showPurchaseMode = () => {
     const mode = selectedMode();
-    const price = unitPrice(product, mode);
+    const price = mode==='subscription'?product.subscriptionPriceCents:product.priceCents;
     document.querySelector(`[data-price="${id}"]`).textContent = money(price);
     document.querySelector(`[data-per-serving="${id}"]`).textContent = `${money(price / 25)} per sachet`;
     form.querySelector('[data-once-price]').textContent = money(product.priceCents);
-    form.querySelector('[data-savings]').textContent = money(product.priceCents - unitPrice(product, 'subscription'));
-    form.querySelector('[data-subscription-price]').firstChild.textContent = money(unitPrice(product, 'subscription'));
-    form.querySelector('[data-renewal-price]').textContent = money(unitPrice(product, 'subscription'));
+    form.querySelector('[data-savings]').textContent = money(product.priceCents - product.subscriptionPriceCents);
+    form.querySelector('[data-subscription-price]').firstChild.textContent = money(product.subscriptionPriceCents);
+    form.querySelector('[data-renewal-price]').textContent = money(product.subscriptionPriceCents);
     form.querySelector('.plan-terms').hidden = mode !== 'subscription';
     input.setCustomValidity('');
   };
   form.querySelectorAll('input[type=radio]').forEach(radio => radio.addEventListener('change', showPurchaseMode));
-  showPurchaseMode();
-  form.querySelector('[type="submit"]').disabled = false;
+  if(catalogAvailable)showPurchaseMode();
+  else form.querySelectorAll('input[type=radio]').forEach(radio=>{radio.disabled=true;});
+  form.querySelector('[type="submit"]').disabled = !catalogAvailable || product.inStock===false;
+  if(!catalogAvailable || product.inStock===false){form.querySelector('[type="submit"]').textContent=catalogAvailable?'Out of stock':'Catalog unavailable';card.querySelector('.product-availability').textContent=catalogAvailable?'This flavor is currently out of stock.':'Please refresh to load current product information.';}
   form.querySelectorAll('[data-step]').forEach(button => button.addEventListener('click', () => {
     const current = Number.isInteger(input.valueAsNumber) ? input.valueAsNumber : 1;
     input.value = String(Math.min(MAX_QUANTITY, Math.max(1, current + Number(button.dataset.step))));
@@ -166,7 +175,7 @@ document.querySelectorAll('.purchase-form').forEach(form => {
   form.addEventListener('submit', event => {
     event.preventDefault();
     input.setCustomValidity('');
-    if (!form.reportValidity()) return;
+    if (!catalogAvailable || product.inStock===false || product.published===false || !form.reportValidity()) return;
     const mode = selectedMode();
     const quantity = input.valueAsNumber + (cart[lineKey(id, mode)] || 0);
     if (quantity > MAX_QUANTITY) {
@@ -186,7 +195,7 @@ renderCart();
 // Optional browser-native agent interface. Cart edits never place an order.
 if (document.modelContext?.registerTool) {
   const lifecycle = new AbortController();
-  const readBag = () => ({ products: Object.values(PRODUCTS).map(product => ({ id: product.id, name: product.name, priceCents: product.priceCents, subscriptionPriceCents: unitPrice(product, 'subscription'), sachetsPerPouch: 25, gummiesPerSachet: 8, gramsPerSachet: 20, gramsPerPouch: 500 })), subscription: SUBSCRIPTION, ...summarizeCart(cart) });
+  const readBag = () => ({ catalogAvailable, products: Object.values(PRODUCTS).filter(product=>product.published!==false).map(product => ({ id: product.id, name: product.name, priceCents: product.priceCents, subscriptionPriceCents: unitPrice(product, 'subscription'), sachetsPerPouch: 25, gummiesPerSachet: 8, gramsPerSachet: 20, gramsPerPouch: 500 })), subscription: SUBSCRIPTION, ...summarizeCart(cart) });
   const definitions = [
     {
       name: 'read_shopping_bag', title: 'Read Sunnybunch shopping bag',
@@ -204,6 +213,8 @@ if (document.modelContext?.registerTool) {
       inputSchema: { type: 'object', properties: { items: { type: 'array', maxItems: 4, items: { type: 'object', properties: { id: { type: 'string', enum: ['raspberry', 'tropical'] }, quantity: { type: 'integer', minimum: 0, maximum: 99 }, purchaseMode: { type: 'string', enum: ['one-time', 'subscription'], default: 'one-time' } }, required: ['id', 'quantity'], additionalProperties: false } } }, required: ['items'], additionalProperties: false },
       annotations: { readOnlyHint: false, untrustedContentHint: false },
       execute(input) {
+        if(!catalogAvailable)throw new Error('The current catalog is unavailable.');
+        for(const item of input?.items||[]){if(item.quantity>0&&(PRODUCTS[item.id]?.published===false||PRODUCTS[item.id]?.inStock===false))throw new Error('This flavor is unavailable.');}
         const next = replaceCart(input);
         commitCart(next);
         openCart();

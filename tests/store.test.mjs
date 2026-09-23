@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { PRODUCTS, unitPrice, lineKey, updateCart, restoreCart, replaceCart, summarizeCart, money } from '../dist/store.mjs';
+import { PRODUCTS, unitPrice, lineKey, updateCart, restoreCart, replaceCart, summarizeCart, money } from '../public/store.mjs';
 
 test('both flavors can be ordered separately, edited and removed without changing the previous bag', () => {
   const original = { raspberry: 1 };
@@ -110,4 +110,26 @@ test('batch edits require valid purchase modes and reject duplicates atomically'
   }
   assert.throws(() => replaceCart({ items: [{ id: 'raspberry', quantity: 1, priceCents: 1 }] }));
   assert.equal(lineKey('raspberry'), 'raspberry');
+});
+
+
+test('unpublished and out-of-stock saved lines remain removable but cannot increase or give normal totals', async () => {
+  const {loadCatalog, PRODUCTS: initial}=await import('../public/store.mjs');
+  loadCatalog([{...initial.tropical,inStock:false}]);
+  const bag=restoreCart('{"raspberry":2,"tropical:subscription":1}');
+  assert.equal(summarizeCart(bag).subtotalCents,null);
+  assert.equal(summarizeCart(bag).recurringSubtotalCents,null);
+  assert.ok(summarizeCart(bag).items.every(item=>!item.available));
+  assert.throws(()=>updateCart(bag,'raspberry',3));
+  assert.equal(updateCart(bag,'raspberry',1).raspberry,1);
+  assert.equal(updateCart(bag,'raspberry',0).raspberry,undefined);
+  loadCatalog(Object.values(initial).map(p=>({...p,inStock:null})));
+});
+test('catalog failure marks every bag price unavailable', async()=>{
+  const {invalidateCatalog}=await import('../public/store.mjs');
+  invalidateCatalog();
+  const bag=restoreCart('{"raspberry":2}');
+  assert.equal(summarizeCart(bag).subtotalCents,null);
+  assert.throws(()=>updateCart(bag,'raspberry',3));
+  assert.equal(updateCart(bag,'raspberry',0).raspberry,undefined);
 });

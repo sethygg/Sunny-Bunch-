@@ -1,4 +1,4 @@
-export const PRODUCTS = Object.freeze({
+export let PRODUCTS = Object.freeze({
   raspberry: Object.freeze({ id: 'raspberry', name: 'Natural Raspberry', priceCents: 3000, subscriptionPriceCents: 2499, image: '/assets/sunnybunch-raspberry-brand-first.jpg' }),
   tropical: Object.freeze({ id: 'tropical', name: 'Pineapple Orange Guava', priceCents: 3000, subscriptionPriceCents: 2499, image: '/assets/sunnybunch-tropical-brand-first.jpg' })
 });
@@ -14,6 +14,7 @@ export function lineKey(id, purchaseMode = 'one-time') {
 }
 export function unitPrice(product, purchaseMode = 'one-time') {
   if (!PURCHASE_MODES.includes(purchaseMode)) throw new Error('Choose one-time purchase or subscription.');
+  if (product.catalogUnavailable || product.published === false || product.inStock === false) return null;
   if (!Number.isInteger(product.priceCents) || product.priceCents < 0) return null;
   const price = purchaseMode === 'subscription' ? product.subscriptionPriceCents : product.priceCents;
   return Number.isInteger(price) && price >= 0 ? price : null;
@@ -21,6 +22,7 @@ export function unitPrice(product, purchaseMode = 'one-time') {
 export function updateCart(cart, id, quantity, purchaseMode = 'one-time') {
   const key = lineKey(id, purchaseMode);
   if (!Number.isInteger(quantity) || quantity < 0 || quantity > MAX_QUANTITY) throw new Error('Choose a whole number of pouches from 0 to 99.');
+  if (quantity > (cart[key] || 0) && (PRODUCTS[id].catalogUnavailable || PRODUCTS[id].published === false || PRODUCTS[id].inStock === false)) throw new Error('This flavor is currently unavailable.');
   const next = { ...cart };
   if (quantity === 0) delete next[key];
   else next[key] = quantity;
@@ -35,7 +37,7 @@ export function restoreCart(raw) {
       for (const mode of PURCHASE_MODES) {
         const key = lineKey(id, mode);
         const quantity = Object.hasOwn(parsed, key) ? parsed[key] : null;
-        if (Number.isInteger(quantity) && quantity > 0 && quantity <= MAX_QUANTITY) cart = updateCart(cart, id, quantity, mode);
+        if (Number.isInteger(quantity) && quantity > 0 && quantity <= MAX_QUANTITY) cart[key] = quantity;
       }
     }
     return cart;
@@ -62,7 +64,7 @@ export function summarizeCart(cart, products = PRODUCTS) {
       if (!Number.isInteger(quantity) || quantity <= 0 || quantity > MAX_QUANTITY) continue;
       const product = products[id];
       const unitPriceCents = unitPrice(product, purchaseMode);
-      items.push({ key, id, name: product.name, purchaseMode, intervalDays: purchaseMode === 'subscription' ? SUBSCRIPTION.intervalDays : null, quantity, unitPriceCents, lineTotalCents: unitPriceCents === null ? null : unitPriceCents * quantity, savingsCents: unitPriceCents === null ? null : (product.priceCents - unitPriceCents) * quantity });
+      items.push({ available: !product.catalogUnavailable && product.published !== false && product.inStock !== false, key, id, name: product.name, purchaseMode, intervalDays: purchaseMode === 'subscription' ? SUBSCRIPTION.intervalDays : null, quantity, unitPriceCents, lineTotalCents: unitPriceCents === null ? null : unitPriceCents * quantity, savingsCents: unitPriceCents === null ? null : (product.priceCents - unitPriceCents) * quantity });
     }
   }
   const recurring = items.filter(item => item.purchaseMode === 'subscription');
@@ -86,3 +88,17 @@ export function summarizeCart(cart, products = PRODUCTS) {
 export function money(cents) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(cents / 100);
 }
+
+// Public catalog data is loaded from the server before purchase controls are enabled.
+export function loadCatalog(rows) {
+  if (!Array.isArray(rows)) throw new Error('Catalog unavailable.');
+  const next=Object.fromEntries(Object.entries(PRODUCTS).map(([id,p])=>[id,{...p,published:false,inStock:null}]));
+  const seen=new Set();
+  for(const row of rows){
+    if(!Object.hasOwn(next,row.id)||seen.has(row.id)||typeof row.name!=='string'||!Number.isInteger(row.priceCents)||row.priceCents<1||!Number.isInteger(row.subscriptionPriceCents)||row.subscriptionPriceCents<1)throw new Error('Catalog unavailable.');
+    seen.add(row.id);next[row.id]={...next[row.id],name:row.name,description:row.description,priceCents:row.priceCents,subscriptionPriceCents:row.subscriptionPriceCents,published:true,catalogUnavailable:false,inStock:row.inStock};
+  }
+  PRODUCTS=Object.freeze(Object.fromEntries(Object.entries(next).map(([id,p])=>[id,Object.freeze(p)])));
+}
+
+export function invalidateCatalog(){PRODUCTS=Object.freeze(Object.fromEntries(Object.entries(PRODUCTS).map(([id,p])=>[id,Object.freeze({...p,priceCents:null,subscriptionPriceCents:null,catalogUnavailable:true})])));}

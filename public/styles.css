@@ -233,3 +233,5 @@ footer>p{font-size:.9375rem}
 [hidden]{display:none!important}
 @media(min-width:701px) and (max-width:1000px){.purchase-option .option-price{grid-column:2;text-align:left}.purchase-form .purchase-option{grid-template-columns:20px minmax(0,1fr)}.option-price>span{display:inline;margin-left:5px}}
 @media(max-width:400px){.purchase-form .purchase-option{gap:8px;padding:14px 10px}.option-copy>strong{font-size:.875rem}.option-copy>span{font-size:.875rem}.option-price{font-size:.9375rem}.purchase-actions{flex-wrap:wrap}.purchase-actions .product-cta{min-width:140px}}
+
+.announcement [data-content=announcement]{display:inline}
