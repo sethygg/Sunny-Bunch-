@@ -1,0 +1,27 @@
+import assert from 'node:assert/strict';
+const origin='http://127.0.0.1:5173'; // Deliberately local-only: creates and reverses test donation records.
+const login=await fetch(origin+'/signin-with-chatgpt?return_to=/admin',{redirect:'manual'}),cookie=login.headers.get('set-cookie')?.split(';')[0];assert.ok(cookie);
+const owner=(path,input,extra={})=>fetch(origin+'/api/admin/'+path,{method:input===undefined?'GET':'POST',headers:{Cookie:cookie,...(input===undefined?{}:{Origin:origin,'Content-Type':'application/json'}),...extra},body:input===undefined?undefined:JSON.stringify(input)});
+const good=async response=>{assert.equal(response.status,200,await response.clone().text());return response.json();};
+await owner('initialize',{}).then(good);
+assert.equal((await fetch(origin+'/creators')).status,200);assert.equal((await fetch(origin+'/api/admin/influencers')).status,401);
+assert.equal((await fetch(origin+'/api/admin/donations',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json'},body:'{}'})).status,401);
+assert.equal((await owner('donations',{}, {Origin:'https://wrong.example'})).status,403);
+const id=crypto.randomUUID(),creator={id,code:'local-creator-'+id.slice(0,8),name:'Local creator',intro:'Local test community supporting opportunity.',contactEmail:'private-creator@example.com',status:'active',revision:0};
+await owner('influencers',creator).then(good);
+const initial=await fetch(origin+'/api/impact/'+creator.code).then(good);assert.equal(initial.donatedCents,0);assert.ok(!JSON.stringify(initial).includes(creator.contactEmail));
+const visit=await fetch(origin+'/creators/'+creator.code);assert.equal(visit.status,200);const referral=visit.headers.get('set-cookie')?.split(';')[0];assert.ok(referral);assert.ok((await visit.text()).includes('$0.00'));
+const selection=await fetch(origin+'/api/school-referral',{headers:{Cookie:referral}}).then(good);assert.equal(selection.school,null);assert.equal(selection.influencer.code,creator.code);
+assert.ok((await(await fetch(origin+'/',{headers:{Cookie:referral}})).text()).includes('Community Partner: '+creator.name));
+const schoolId=crypto.randomUUID(),school={id:schoolId,code:'local-school-'+schoolId.slice(0,8),name:'Local school',program:'Test program',contactEmail:'',status:'active',revision:0};await owner('schools',school).then(good);
+const switchLink=await fetch(origin+'/schools/'+school.code,{headers:{Cookie:referral}}),schoolCookie=switchLink.headers.get('set-cookie')?.split(';')[0];assert.ok(schoolCookie);
+const switched=await fetch(origin+'/api/school-referral',{headers:{Cookie:schoolCookie}}).then(good);assert.equal(switched.influencer,null);assert.equal(switched.school.code,school.code);
+assert.equal((await fetch(origin+'/creators/'+school.code)).status,404);assert.equal((await fetch(origin+'/schools/'+creator.code)).status,404);
+const donation={id:crypto.randomUUID(),reference:'LOCAL PRIVATE RECEIPT '+crypto.randomUUID(),transferredOn:new Date().toISOString().slice(0,10),amountCents:10000,allocations:[{partnerId:id,amountCents:7000}],confirmed:true};
+assert.equal((await owner('donations',{...donation,allocations:[{partnerId:id,amountCents:10001}]})).status,400);await owner('donations',donation).then(good);await owner('donations',donation).then(good);
+const impact=await fetch(origin+'/api/impact/'+creator.code).then(good);assert.equal(impact.donatedCents,7000);const publicText=JSON.stringify(impact);assert.ok(!publicText.includes(donation.reference.toLowerCase()));assert.ok(!publicText.includes(creator.contactEmail));assert.ok(!publicText.includes(id));
+const html=await(await fetch(origin+'/creators/'+creator.code)).text();assert.ok(html.includes('$70.00'));assert.ok(html.includes('?refresh='));assert.ok(!html.includes(donation.reference.toLowerCase()));
+await owner('influencers',{...creator,revision:1,status:'paused'}).then(good);const paused=await fetch(origin+'/creators/'+creator.code,{headers:{Cookie:schoolCookie}});assert.equal(paused.status,200);assert.equal(paused.headers.get('set-cookie'),null);assert.ok((await paused.text()).includes('$70.00'));
+await owner('donations/reverse',{id:donation.id,reason:'Local validation complete; reverse test record'}).then(good);assert.equal((await fetch(origin+'/api/impact/'+creator.code).then(good)).donatedCents,0);
+await owner('influencers',{...creator,revision:2,status:'draft'}).then(good);assert.equal((await fetch(origin+'/api/impact/'+creator.code)).status,404);await owner('schools',{...school,revision:1,status:'paused'}).then(good);
+console.log('Influencer HTTP smoke passed: private mutation authorization, public impact, single school/creator selection, duplicate protection, correct allocated totals, private-data exclusion, paused history and reversal.');

@@ -53,7 +53,7 @@ Supported changes: `update_product`, `set_inventory`, `adjust_inventory`, `updat
 - `npm run dev -- --hostname 127.0.0.1`
 - `npm run db:generate` after schema changes; generated migrations are deployed with Sites.
 - `npx tsc --noEmit`
-- `node --test tests/backend.test.mjs tests/store.test.mjs tests/schools.test.mjs`
+- `node --test tests/backend.test.mjs tests/store.test.mjs tests/schools.test.mjs tests/influencers.test.mjs`
 - `node tests/http-smoke.mjs` against an isolated local preview. This initializes local data and records a test inventory count; never point it at production.
 
 Backend tests execute the production repository SQL against in-memory SQLite through a D1-compatible transaction adapter, including concurrent revisions and rollback. HTTP smoke checks test the local Workers/D1 integration and simulated sign-in. They do not verify real hosted ChatGPT login or browser rendering. Browser-native AI tool execution remains unverified where the host does not expose a model-context test environment.
@@ -75,3 +75,21 @@ Before enabling checkout: capture and persist referral evidence server-side at c
 The user-approved donation flow is Sunnybunch → Mia’s Place → the district’s designated special education program. District allocations are within Sunnybunch’s all-profit commitment, not additional obligations. Reports aggregate actual recorded paid orders and active subscriptions across all records. Gross payments may include tax/shipping and are before refunds/costs. Profit and grant amounts remain `null`/pending until accounting exists; the known $5.50 product cost alone is insufficient. No funds transfer, reconciliation, partner login or live billing is implemented.
 
 `node tests/schools-http-smoke.mjs` runs local-only integration checks and creates then pauses a temporary test district. Never run it against production. Unit tests cover migration compatibility, authorization helpers, strict validation, guarded audit rollback, token hashing/expiry/removal, immutable subscription attribution, exact provider linkage, pending accounting and output escaping.
+
+## Influencer communities and public donation impact
+
+Public program: `/creators`. Per-community referral/impact page: `/creators/{code}`. Owner controls: `/admin#influencers`. Public aggregate endpoint: `/api/impact/{code}`. No creator profiles, donations or customers are seeded in production.
+
+The founder confirmed no influencer commission, the same 30-day last-link purchase window, and original-partner attribution for subscription renewals until cancellation. Existing partner tables now have immutable `kind` (`school` or `influencer`, default `school` preserves old rows) plus a plain-text community introduction. Both programs share one opaque referral cookie and the existing order/subscription attribution primary keys, preventing simultaneous school and influencer credit for the same order. Historical column/table names are retained for compatibility. Public and admin routes enforce the correct partner kind.
+
+Active creator pages both display impact and select that creator for new eligible referrals; the page makes this explicit. Draft pages are private. Paused pages keep public donation history without setting a new referral cookie. No customer/student identity or financial reference is public. Public responses are not cached. The refresh-total link makes a new request.
+
+Public impact is the sum of completed charity-transfer allocations for that creator, excluding reversed records. The page says these are completed donations recorded by Sunnybunch; it does not claim bank or third-party verification. The total starts at $0 recorded. Sales/estimated profit do not increment it. Gross sales, contact emails, raw transfers, private confirmation references and customer data are never returned by the public endpoint.
+
+The owner can record an already-completed USD transfer to Mia’s Place, with its actual nonfuture date, globally unique normalized private bank/charity confirmation reference, total cents and reconciled community shares. The form requires explicit confirmation and shows the effect on public totals before saving. Positive integer allocations across 1–25 distinct eligible influencers cannot exceed the transfer amount; unallocated remainder does not count toward any influencer. Allocation eligibility is checked inside the same atomic transaction that records the transfer, allocations and audit. Idempotent retries and unique references prevent duplicate totals. Immutable records can be reversed with a reason, which preserves history and removes the public allocation amounts; this never moves or returns money. Corrections use a new distinctly identified record after reversing the incorrect one.
+
+This is a manual completed-donation recording workflow, not automated bookkeeping, bank reconciliation or a payment integration. The owner must verify transfers and calculate attributed profit shares from reconciled business records. All shares are part of the existing all-profit donation commitment. No charity payout, tax receipt, affiliate commission or customer checkout runs here. Future payment implementation must use the shared immutable referral snapshot helpers, durable checkout evidence and verified provider events as described above.
+
+Compatible signed-in assistants can use `read_influencer_impact` for the private report. Financial recording and correction stay in the owner’s explicit review flow.
+
+Validation: 32 domain/SQL tests cover both programs and transactional accounting. `node tests/influencers-http-smoke.mjs` runs local-only identity/origin checks, school/creator cookie replacement, public privacy, completed donation allocation, duplicate prevention, paused pages and reversal. It creates then reverses test records only in the local D1 database; never point it at production. Existing school HTTP checks also pass. Browser UI interaction and browser-native model-context execution were not tested.

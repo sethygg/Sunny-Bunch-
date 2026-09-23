@@ -8,6 +8,7 @@ export const orders = sqliteTable('orders', { id: text('id').primaryKey(), provi
 export const subscriptions = sqliteTable('subscriptions', { id: text('id').primaryKey(), providerSubscriptionId: text('provider_subscription_id').unique(), customerEmail: text('customer_email').notNull(), status: text('status').notNull(), items: text('items').notNull(), nextBillingAt: text('next_billing_at'), createdAt: text('created_at').notNull() });
 
 export const schoolPartners = sqliteTable('school_partners', {
+  kind: text('kind').notNull().default('school'), intro: text('intro').notNull().default(''),
   id: text('id').primaryKey(), code: text('code').notNull().unique(), name: text('name').notNull(), program: text('program').notNull(),
   contactEmail: text('contact_email').notNull(), status: text('status').notNull(), revision: integer('revision').notNull(),
   lastOperation: text('last_operation').notNull(), referralVisits: integer('referral_visits').notNull().default(0),
@@ -27,3 +28,14 @@ export const schoolOrderAttributions = sqliteTable('school_order_attributions', 
   subscriptionId: text('subscription_id').references(()=>subscriptions.id), districtName: text('district_name'), programName: text('program_name'),
   referralHash: text('referral_hash'), policy: text('policy').notNull(), createdAt: text('created_at').notNull()
 }, t=>[index('idx_school_orders_partner').on(t.partnerId)]);
+
+export const charityTransfers = sqliteTable('charity_transfers', {
+  id: text('id').primaryKey(), reference: text('reference').notNull().unique(), transferredOn: text('transferred_on').notNull(),
+  amountCents: integer('amount_cents').notNull(), currency: text('currency').notNull(), recipient: text('recipient').notNull(),
+  operation: text('operation').notNull(), payload: text('payload').notNull(), status: text('status').notNull(), actor: text('actor').notNull(), createdAt: text('created_at').notNull(),
+  reversedAt: text('reversed_at'), reversalReason: text('reversal_reason')
+});
+export const charityAllocations = sqliteTable('charity_allocations', {
+  id: text('id').primaryKey(), transferId: text('transfer_id').notNull().references(()=>charityTransfers.id),
+  partnerId: text('partner_id').notNull().references(()=>schoolPartners.id), amountCents: integer('amount_cents').notNull()
+}, t=>[index('idx_charity_allocations_partner').on(t.partnerId),index('idx_charity_allocations_transfer').on(t.transferId)]);

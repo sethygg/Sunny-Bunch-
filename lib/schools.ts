@@ -2,38 +2,41 @@ import { db, snapshot } from './database';
 import { CommerceError } from './commerce.mjs';
 import { SCHOOL_POLICY, REFERRAL_SECONDS, validateSchoolPartner, validSchoolCode, hashReferral, publicSchool } from './school-policy.mjs';
 
-const fromRow=(p:any)=>({id:p.id,code:p.code,name:p.name,program:p.program,contactEmail:p.contact_email,status:p.status,revision:p.revision,referralVisits:p.referral_visits,createdAt:p.created_at,updatedAt:p.updated_at});
+export const partnerFromRow=(p:any)=>({kind:p.kind,intro:p.intro,id:p.id,code:p.code,name:p.name,program:p.program,contactEmail:p.contact_email,status:p.status,revision:p.revision,referralVisits:p.referral_visits,createdAt:p.created_at,updatedAt:p.updated_at});
 export async function schoolReport(){
   const rows=await db().prepare(`SELECT p.*,
     (SELECT count(*) FROM school_order_attributions a JOIN orders o ON o.id=a.order_id WHERE a.partner_id=p.id AND o.payment_status='paid') AS paid_orders,
     (SELECT sum(o.total_cents) FROM school_order_attributions a JOIN orders o ON o.id=a.order_id WHERE a.partner_id=p.id AND o.payment_status='paid' AND o.currency='USD') AS gross_paid_cents,
     (SELECT count(*) FROM school_subscription_attributions a JOIN subscriptions s ON s.id=a.subscription_id WHERE a.partner_id=p.id AND s.status='active') AS active_subscriptions
-    FROM school_partners p ORDER BY p.name COLLATE NOCASE`).all<any>();
-  return {partners:rows.results.map(p=>({...fromRow(p),paidOrders:p.paid_orders,grossPaidCents:p.gross_paid_cents??0,activeSubscriptions:p.active_subscriptions,profitCents:null,donatedCents:null})),policy:SCHOOL_POLICY,windowDays:30,billingConnected:false,accountingConnected:false};
+    FROM school_partners p WHERE p.kind='school' ORDER BY p.name COLLATE NOCASE`).all<any>();
+  return {partners:rows.results.map(p=>({...partnerFromRow(p),paidOrders:p.paid_orders,grossPaidCents:p.gross_paid_cents??0,activeSubscriptions:p.active_subscriptions,profitCents:null,donatedCents:null})),policy:SCHOOL_POLICY,windowDays:30,billingConnected:false,accountingConnected:false};
 }
-export async function saveSchoolPartner(input:unknown,actor:string){
-  const value=validateSchoolPartner(input);
+export async function saveSchoolPartner(input:unknown,actor:string){return saveReferralPartner(validateSchoolPartner(input),actor,'school');}
+export async function saveReferralPartner(value:any,actor:string,kind:'school'|'influencer',intro=''){
+  value={...value,intro};
   if(!(await snapshot()).initialized)throw new CommerceError('Initialize your store first.',409);
   const existing=await db().prepare('SELECT * FROM school_partners WHERE id=?').bind(value.id).first<any>();
   const duplicate=await db().prepare('SELECT id FROM school_partners WHERE code=? AND id<>?').bind(value.code,value.id).first<any>();
-  if(duplicate)throw new CommerceError('That district link code is already in use. Choose another.',409);
-  if(existing&&existing.code!==value.code)throw new CommerceError('A district link code is permanent. Edit its name or program instead.',409);
+  if(duplicate)throw new CommerceError('That partner link code is already in use. Choose another.',409);
+  if(existing&&existing.kind!==kind)throw new CommerceError('This record belongs to a different partner program.',409);
+  if(existing&&existing.code!==value.code)throw new CommerceError('A partner link code is permanent. Edit its name or program instead.',409);
   if(existing&&value.revision===0){
-    const previous=fromRow(existing);
-    if(['id','code','name','program','contactEmail','status'].every(k=>(previous as any)[k]===(value as any)[k]))return previous;
-    throw new CommerceError('This district already exists. Refresh before editing it.',409);
+    const previous=partnerFromRow(existing);
+    if(['id','code','name','program','contactEmail','status','intro'].every(k=>(previous as any)[k]===(value as any)[k]))return previous;
+    throw new CommerceError('This partner already exists. Refresh before editing it.',409);
   }
-  if((existing?.revision??0)!==value.revision)throw new CommerceError('This district changed. Refresh and review your edits again.',409);
+  if((existing?.revision??0)!==value.revision)throw new CommerceError('This partner changed. Refresh and review your edits again.',409);
   const operation=crypto.randomUUID(),at=new Date().toISOString(),revision=value.revision+1;
-  const write=existing?db().prepare('UPDATE school_partners SET name=?,program=?,contact_email=?,status=?,revision=?,last_operation=?,updated_at=? WHERE id=? AND revision=?').bind(value.name,value.program,value.contactEmail,value.status,revision,operation,at,value.id,value.revision)
-    :db().prepare('INSERT INTO school_partners(id,code,name,program,contact_email,status,revision,last_operation,referral_visits,created_at,updated_at) VALUES(?,?,?,?,?,?,1,?,0,?,?) ON CONFLICT DO NOTHING').bind(value.id,value.code,value.name,value.program,value.contactEmail,value.status,operation,at,at);
-  const result=await db().batch([write,db().prepare("INSERT INTO audit(id,actor,action,before_data,after_data,created_at) SELECT ?,?,'save_school_partner',?,?,? WHERE EXISTS(SELECT 1 FROM school_partners WHERE id=? AND last_operation=?)").bind(operation,actor,JSON.stringify(existing?fromRow(existing):null),JSON.stringify({...value,revision}),at,value.id,operation)]);
-  if(!result[0].meta.changes)throw new CommerceError('The district or its link code changed. Refresh before retrying.',409);
-  return fromRow(await db().prepare('SELECT * FROM school_partners WHERE id=?').bind(value.id).first());
+  const write=existing?db().prepare('UPDATE school_partners SET name=?,program=?,contact_email=?,status=?,intro=?,revision=?,last_operation=?,updated_at=? WHERE id=? AND revision=?').bind(value.name,value.program,value.contactEmail,value.status,intro,revision,operation,at,value.id,value.revision)
+    :db().prepare('INSERT INTO school_partners(id,code,name,program,contact_email,status,revision,last_operation,referral_visits,created_at,updated_at,kind,intro) VALUES(?,?,?,?,?,?,1,?,0,?,?,?,?) ON CONFLICT DO NOTHING').bind(value.id,value.code,value.name,value.program,value.contactEmail,value.status,operation,at,at,kind,intro);
+  const result=await db().batch([write,db().prepare("INSERT INTO audit(id,actor,action,before_data,after_data,created_at) SELECT ?,?,'save_referral_partner',?,?,? WHERE EXISTS(SELECT 1 FROM school_partners WHERE id=? AND last_operation=?)").bind(operation,actor,JSON.stringify(existing?partnerFromRow(existing):null),JSON.stringify({...value,kind,revision}),at,value.id,operation)]);
+  if(!result[0].meta.changes)throw new CommerceError('The partner or its link code changed. Refresh before retrying.',409);
+  return partnerFromRow(await db().prepare('SELECT * FROM school_partners WHERE id=?').bind(value.id).first());
 }
-export async function createSchoolReferral(code:string,now=new Date()){
+export async function createSchoolReferral(code:string,now=new Date()){return createPartnerReferral(code,'school',now);}
+export async function createPartnerReferral(code:string,kind:'school'|'influencer',now=new Date()){
   if(!validSchoolCode(code))throw new CommerceError('This school partner link is unavailable.',404);
-  const partner=await db().prepare("SELECT * FROM school_partners WHERE code=? AND status='active'").bind(code).first<any>();
+  const partner=await db().prepare("SELECT * FROM school_partners WHERE code=? AND kind=? AND status='active'").bind(code,kind).first<any>();
   if(!partner)throw new CommerceError('This school partner link is unavailable.',404);
   const token=Array.from(crypto.getRandomValues(new Uint8Array(32)),b=>b.toString(16).padStart(2,'0')).join('');
   const hash=await hashReferral(token),at=now.toISOString(),expires=new Date(now.getTime()+REFERRAL_SECONDS*1000).toISOString();
@@ -47,7 +50,7 @@ export async function createSchoolReferral(code:string,now=new Date()){
 }
 export async function resolveSchoolReferral(token:string|null,now=new Date()){
   const hash=await hashReferral(token);if(!hash)return null;
-  return db().prepare(`SELECT p.id,p.code,p.name,p.program,r.token_hash,r.policy,r.expires_at FROM school_referrals r JOIN school_partners p ON p.id=r.partner_id
+  return db().prepare(`SELECT p.id,p.kind,p.intro,p.code,p.name,p.program,r.token_hash,r.policy,r.expires_at FROM school_referrals r JOIN school_partners p ON p.id=r.partner_id
     WHERE r.token_hash=? AND r.expires_at>? AND r.created_at<=? AND p.status='active'`).bind(hash,now.toISOString(),now.toISOString()).first<any>();
 }
 export async function clearSchoolReferral(token:string|null){const hash=await hashReferral(token);if(hash)await db().prepare('DELETE FROM school_referrals WHERE token_hash=?').bind(hash).run();}
